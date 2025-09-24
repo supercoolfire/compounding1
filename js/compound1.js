@@ -1,4 +1,4 @@
-// compound1.js — withdrawal-aware
+let balanceChart; // Chart.js instance
 
 const COMPOUNDS_PER_DAY = 3;
 const INCREASE_RATE = 0.01;
@@ -13,7 +13,7 @@ function fmtMoney(n) {
 }
 function compoundOnePeriod(a) {
   const inc = a * INCREASE_RATE;
-  return a + Math.round(inc * 10) / 10; // same rounding
+  return a + Math.round(inc * 10) / 10; // rounding like before
 }
 function compoundOneDay(a) {
   for (let i = 0; i < COMPOUNDS_PER_DAY; i++) a = compoundOnePeriod(a);
@@ -32,15 +32,19 @@ function addWithdrawal() {
 function renderWithdrawals() {
   const list = document.getElementById("withdrawalsList");
   if (!list) return;
-  if (withdrawals.length === 0) { list.innerHTML = '<li class="list-group-item text-muted">No withdrawals</li>'; return; }
-  list.innerHTML = withdrawals.map(w=>`
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      <div><strong>$${fmtMoney(w.amount)}</strong> <small class="text-muted">${w.date}</small></div>
-      <div>
-        <button class="btn btn-sm btn-warning me-2" onclick="editWithdrawal(${w.id})">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteWithdrawal(${w.id})">Delete</button>
-      </div>
-    </li>`).join('');
+  if (withdrawals.length === 0) {
+    list.innerHTML = '<li class="list-group-item text-muted">No withdrawals</li>';
+  } else {
+    list.innerHTML = withdrawals.map(w=>`
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div><strong>$${fmtMoney(w.amount)}</strong> <small class="text-muted">${w.date}</small></div>
+        <div>
+          <button class="btn btn-sm btn-warning me-2" onclick="editWithdrawal(${w.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteWithdrawal(${w.id})">Delete</button>
+        </div>
+      </li>`).join('');
+  }
+  updateBalanceChart(); // update chart whenever list changes
 }
 function editWithdrawal(id){
   const i=withdrawals.findIndex(w=>w.id===id);
@@ -53,7 +57,10 @@ function editWithdrawal(id){
   withdrawals.sort((x, y) => new Date(x.date) - new Date(y.date));
   renderWithdrawals();
 }
-function deleteWithdrawal(id){withdrawals=withdrawals.filter(w=>w.id!==id);renderWithdrawals();}
+function deleteWithdrawal(id){
+  withdrawals=withdrawals.filter(w=>w.id!==id);
+  renderWithdrawals();
+}
 
 // ---- Core calc helpers ----
 function applyWithdrawalsForDays(amount,startDate,days){
@@ -77,11 +84,8 @@ function growToTarget(amount,startDate,target){
   const sorted=[...withdrawals].sort((x,y)=>new Date(x.date)-new Date(y.date));
   let idx=0;
   while(a<target){
-    // check next withdrawal date
     const next=sorted[idx]?new Date(sorted[idx].date):null;
-    if(next && next<=cur){ // apply immediate withdraw if same day
-      a=Math.max(0,a-sorted[idx].amount); idx++; continue;
-    }
+    if(next && next<=cur){ a=Math.max(0,a-sorted[idx].amount); idx++; continue; }
     a=compoundOneDay(a); days++;
     cur.setDate(cur.getDate()+1);
     if(next && cur>next){ a=Math.max(0,a-sorted[idx].amount); idx++; }
@@ -101,6 +105,7 @@ function calculateInvestment(){
   document.getElementById('finalResult').textContent=`Final amount after ${days} days: $${fmtMoney(final)}`;
   document.getElementById('finalResult').classList.remove('d-none');
   document.getElementById('endDate').value=formatDateISO(end);
+  updateBalanceChart();
 }
 
 function calculateDaysToTarget(){
@@ -113,9 +118,10 @@ function calculateDaysToTarget(){
   document.getElementById('endDate').value=formatDateISO(r.end);
   document.getElementById('targetResult').textContent=`It will take about ${r.days} days to reach $${fmtMoney(target)} (until ${r.end.toDateString()}).`;
   document.getElementById('targetResult').classList.remove('d-none');
+  updateBalanceChart();
 }
 
-// date link helpers stay same
+// ---- Date link helpers ----
 function updateEndDateFromDays(){
   const s=new Date(document.getElementById('startDate').value);
   const d=parseInt(document.getElementById('days').value||0);
@@ -127,7 +133,99 @@ function updateDaysFromEndDate(){
   if(!isNaN(e))document.getElementById('days').value=Math.ceil((e-s)/msPerDay);
 }
 
-// init start date today
+// ---- Chart for withdrawals ----
+function updateBalanceChart() {
+  const container = document.getElementById("balanceChartContainer");
+  if (!container) return;
+  if (withdrawals.length === 0) {
+    container.classList.add("d-none");
+    if (balanceChart) balanceChart.destroy();
+    return;
+  }
+  container.classList.remove("d-none");
+
+  const start = new Date(document.getElementById("startDate").value);
+  let amount = parseFloat(document.getElementById("startAmount").value);
+  if (isNaN(amount)) amount = 300;
+
+  const sorted = [...withdrawals].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const labels = [];
+  const balances = [];
+
+  let cur = new Date(start);
+  let idx = 0;
+
+  while (idx < sorted.length) {
+    const wdDate = new Date(sorted[idx].date);
+    const diff = Math.ceil((wdDate - cur) / msPerDay);
+    for (let d = 0; d < diff; d++) {
+      amount = compoundOneDay(amount);
+    }
+    amount = Math.max(0, amount - sorted[idx].amount);
+    labels.push(`${formatDateISO(wdDate)} (WD $${fmtMoney(sorted[idx].amount)})`);
+    balances.push(amount.toFixed(2));
+    cur = new Date(wdDate);
+    cur.setDate(cur.getDate() + 1);
+    idx++;
+  }
+
+  if (balanceChart) balanceChart.destroy();
+
+  const ctx = document.getElementById("balanceChart").getContext("2d");
+  balanceChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Remaining Balance",
+          data: balances,
+          backgroundColor: "#0d6efd", // blue
+          stack: 'stack1'
+        },
+        {
+          label: "Withdrawn",
+          data: sorted.map(w => w.amount),
+          backgroundColor: "#dc3545", // red
+          stack: 'stack1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: true,
+          ticks: {
+            font: { size: 10 }
+          },
+          barThickness: 16,  // about 1rem
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          title: { display: true, text: "Amount ($)" }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ': $' + fmtMoney(ctx.parsed.y);
+            }
+          }
+        }
+      }
+    }
+  });
+  
+}
+
+// ---- init ----
 window.onload=()=>{
   const t=new Date(), ts=formatDateISO(t);
   document.getElementById('startDate').value=ts;
