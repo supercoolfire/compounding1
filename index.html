@@ -44,6 +44,40 @@
     <button class="btn btn-success w-100 mb-3" onclick="calculateDaysToTarget()">Calculate Days to Reach Target</button>
     <div class="alert alert-warning d-none" id="targetResult"></div>
 
+<!-- Withdrawal controls -->
+<div class="card mt-3">
+  <div class="card-header">Withdrawals</div>
+  <div class="card-body">
+    <form class="row g-3" onsubmit="event.preventDefault(); addWithdrawal();">
+      <div class="col-md-4">
+        <label for="withdrawDate" class="form-label">Date</label>
+        <input type="date" id="withdrawDate" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <label for="withdrawAmount" class="form-label">Amount</label>
+        <div class="input-group">
+          <span class="input-group-text">$</span>
+          <input type="number" id="withdrawAmount" class="form-control" min="1" required />
+        </div>
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" id="withdrawBtn" class="btn btn-danger w-100">
+          Withdraw
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Withdrawal list -->
+<div class="card mt-3">
+  <div class="card-header">Withdrawal History</div>
+  <ul id="withdrawalsList" class="list-group list-group-flush"></ul>
+</div>
+
+
+
+
     <hr>
     <!-- ✅ Explanation -->
     <div class="mt-4">
@@ -62,6 +96,7 @@
         When you adjust days, the end date updates automatically; when you pick an end date, the days update.
       </p>
     </div>
+    
   </div>
 
   <!-- ✅ Bootstrap JS -->
