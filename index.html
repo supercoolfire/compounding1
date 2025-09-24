@@ -79,23 +79,30 @@
 
 
     <hr>
-    <!-- ✅ Explanation -->
-    <div class="mt-4">
-      <h5>How the calculation works:</h5>
-      <p class="small text-muted">
-        Your investment grows by <strong>1% per compounding period</strong>, and there are
-        <strong>3 compounding periods per day</strong>. Each 1% increase is <em>rounded to the nearest tenth</em> of a dollar
-        before being added back to the balance.  
-      </p>
-      <p class="small text-muted">
-        For example, if your balance is $100, a 1% increase is $1.00. If it were $14.38, a 1% increase is $0.1438, 
-        which is rounded to $0.10. The balance is then updated, and the next period’s 1% is calculated on the new rounded amount.
-      </p>
-      <p class="small text-muted">
-        This calculator uses the <strong>Start Date</strong> and <strong>Number of Days</strong> (or <strong>End Date</strong>) to determine the growth period. 
-        When you adjust days, the end date updates automatically; when you pick an end date, the days update.
-      </p>
-    </div>
+
+        <!-- ✅ Explanation -->
+        <div class="mt-4">
+          <h5>How the calculation works:</h5>
+          <p class="small text-muted">
+            When you first sign up, you’ll start with a <strong>free balance of $300</strong>.
+            After <strong>3 days</strong> that initial $300 is returned, and your real
+            compounding starts with a personal balance of <strong>$28.10</strong>.
+          </p>
+          <p class="small text-muted">
+            Your balance then grows by <strong>1% per compounding period</strong>, and there are
+            <strong>3 compounding periods per day</strong>. Each 1% increase is <em>rounded to the nearest tenth</em> of a dollar
+            before being added back to the balance.
+          </p>
+          <p class="small text-muted">
+            For example, if your balance is $28.10, a 1% increase is about $0.28, which rounds to $0.30 and gets added.
+            The next period calculates 1% on the new total.
+          </p>
+          <p class="small text-muted">
+            This calculator uses the <strong>Start Date</strong> and <strong>Number of Days</strong> (or <strong>End Date</strong>) to determine the growth period.
+            If you add <strong>withdrawals</strong>, they’re applied on the selected dates and the growth continues from the reduced balance.
+          </p>
+        </div>
+    
     
   </div>
 
