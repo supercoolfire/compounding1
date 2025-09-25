@@ -100,24 +100,27 @@
         <div class="mt-4">
           <h5>How the calculation works:</h5>
           <p class="small text-muted">
-            When you first sign up, you’ll start with a <strong>free balance of $300</strong>.
-            After <strong>3 days</strong> that initial $300 is returned, and your real
-            compounding starts with a personal balance of <strong>$28.10</strong>.
+            Spreadsheets can quickly become unwieldy when trying to project future balances with multiple deposits, withdrawals, and compounding periods. 
+            This calculator was created to handle complex datasets easily and give clear projections without complicated formulas.
           </p>
           <p class="small text-muted">
-            Your balance then grows by <strong>1% per compounding period</strong>, and there are
-            <strong>3 compounding periods per day</strong>. Each 1% increase is <em>rounded to the nearest tenth</em> of a dollar
-            before being added back to the balance.
+            When you first sign up, you’ll start with a <strong>free balance of $300</strong>. After <strong>3 days</strong>, that initial $300 is withdrawn, and your personal compounding begins with a balance of approximately <strong>$28.10</strong>.
           </p>
           <p class="small text-muted">
-            For example, if your balance is $28.10, a 1% increase is about $0.28, which rounds to $0.30 and gets added.
-            The next period calculates 1% on the new total.
+            Your balance grows by <strong>1% per compounding period</strong>, with <strong>3 compounding periods per day</strong> occurring at <strong>3:00 PM, 6:00 PM, and 9:00 PM GMT+08</strong>. Each 1% increase is <em>rounded to the nearest tenth of a dollar</em> before being added back to the balance.
           </p>
           <p class="small text-muted">
-            This calculator uses the <strong>Start Date</strong> and <strong>Number of Days</strong> (or <strong>End Date</strong>) to determine the growth period.
-            If you add <strong>withdrawals</strong>, they’re applied on the selected dates and the growth continues from the reduced balance.
+            For example, if your balance is $28.10, a 1% increase is about $0.28, which rounds to $0.30 and is added. The next period calculates 1% on the new total.
+          </p>
+          <p class="small text-muted">
+            To allow trading, a <strong>signal code</strong> is generated at each compounding period with a <strong>10-minute window</strong> of opportunity to execute trades based on that period.
+          </p>
+          <p class="small text-muted">
+            The calculator uses the <strong>Start Date</strong> and <strong>Number of Days</strong> (or <strong>End Date</strong>) to determine the growth period. 
+            Any <strong>withdrawals</strong> you add are applied on the chosen dates, and the balance continues to grow from the reduced amount.
           </p>
         </div>
+        
     
     
   </div>

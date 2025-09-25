@@ -17,7 +17,8 @@ Users can enter a start amount, add withdrawals, pick start & end dates, or inpu
 ✅ Calculate the **final amount** after daily compounding  
 ✅ Calculate the **days needed** to reach a target amount  
 ✅ **Withdrawal tracking** — subtracts amounts and updates balance  
-✅ **Bar graph** showing withdrawn (red) vs remaining (blue) balance  
+✅ **Bar graph** showing withdrawn (red) vs remaining (blue/light-blue) balance  
+✅ Month-end checkpoint bars in **light blue** if no withdrawals exist in that month  
 ✅ Pick **start & end dates** with automatic day calculation  
 ✅ Enter a **number of days** and automatically update the end date  
 ✅ Uses **Bootstrap 5** for a clean, responsive UI  
@@ -33,41 +34,31 @@ Users can enter a start amount, add withdrawals, pick start & end dates, or inpu
 - **Compounding:** 3 times per day at **1% per period**.  
 - **Rounding:** Each increase is rounded to the nearest tenth before adding.  
 - **Withdrawal logic:** You can subtract funds at any time; the bar graph updates to show withdrawn vs remaining balance.  
+- **Month-end checkpoint:** A light-blue bar shows the balance at the last day of each month **only if no withdrawals occur that month**.  
 
-Example for one compounding cycle:
+Example for one compounding cycle:  
 increase = current_amount × 0.01
-rounded_increase = round(increase to nearest 0.1)
-new_amount = current_amount + rounded_increase
-
+rounded_increase = round(increase to nearest 0.1)  
+new_amount = current_amount + rounded_increase  
 
 ---
 
 ## ⚡ Getting Started
 
-1. **Clone or download** this repository:
-    ```bash
-    git clone https://github.com/yourusername/compounded-investment-calculator.git
-    ```
-
-2. **Open the HTML file** in your browser:
-    ```
-    index.html
-    ```
-
-That’s it — no installation or server required!
+1. **Open** [https://supercoolfire.github.io/compounding1/](https://supercoolfire.github.io/compounding1/)
 
 ---
 
 ## 🧪 Usage
 
-1. Enter your **Starting Amount** (defaults to $300 for new users).
-2. Choose **Start Date** (defaults to today).
+1. Enter your **Starting Amount** (defaults to $300 for new users).  
+2. Choose **Start Date** (defaults to today).  
 3. Either:
-   - Enter the **Number of Days** → End date updates automatically.
-   - Pick an **End Date** → Number of days updates automatically.
-4. Add any **Withdrawals** to simulate cashing out.
-5. Click **Calculate Final Amount** to see your investment growth and updated bar graph.
-6. Or enter a **Target Amount** and click **Calculate Days to Reach Target**.
+   - Enter the **Number of Days** → End date updates automatically.  
+   - Pick an **End Date** → Number of days updates automatically.  
+4. Add any **Withdrawals** to simulate cashing out.  
+5. Click **Calculate Final Amount** to see your investment growth and updated bar graph.  
+6. Or enter a **Target Amount** and click **Calculate Days to Reach Target**.  
 
 ---
 
@@ -75,8 +66,8 @@ That’s it — no installation or server required!
 
 - **Red bar (top):** Total withdrawn  
 - **Blue bar (bottom):** Remaining balance after withdrawals  
-
-Each bar has a fixed width (1rem) for a clean, easy-to-read view.
+- **Light-blue bar:** Month-end balance if no withdrawal exists in that month  
+- **Width:** Each bar is fixed at **1rem** for clean, easy-to-read display  
 
 ---
 
