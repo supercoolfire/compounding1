@@ -137,99 +137,98 @@ function updateDaysFromEndDate(){
 function updateBalanceChart() {
   const container = document.getElementById("balanceChartContainer");
   if (!container) return;
-  if (withdrawals.length === 0) {
-    container.classList.add("d-none");
-    if (balanceChart) balanceChart.destroy();
-    return;
-  }
+
   container.classList.remove("d-none");
 
-  const start = new Date(document.getElementById("startDate").value);
-  let amount = parseFloat(document.getElementById("startAmount").value);
-  if (isNaN(amount)) amount = 300;
+  let startAmount = parseFloat(document.getElementById("startAmount").value);
+  if (isNaN(startAmount)) startAmount = 300;
 
-  const sorted = [...withdrawals].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const labels = [];
-  const balances = [];
-  const withdrawnAmounts = [];
+  const startDate = new Date(document.getElementById("startDate").value);
+  const endDateInput = document.getElementById("endDate").value;
+  const finalDate = endDateInput ? new Date(endDateInput) : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  let cur = new Date(start);
-  let idx = 0;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const normalize = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const lastDayOfMonth = d => new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
-  while (idx < sorted.length) {
-    const wdDate = new Date(sorted[idx].date);
-    const diff = Math.ceil((wdDate - cur) / msPerDay);
-    for (let d = 0; d < diff; d++) {
-      amount = compoundOneDay(amount);
+  const sortedWDs = [...withdrawals].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let checkpoints = sortedWDs.map(w => normalize(new Date(w.date)));
+
+  // --- Add month-end checkpoints only if no withdrawal in that month ---
+  if (checkpoints.length > 0) {
+    const first = checkpoints[0];
+    const last = checkpoints[checkpoints.length - 1];
+    let monthCursor = new Date(first.getFullYear(), first.getMonth(), 1);
+
+    while (monthCursor <= last) {
+      const monthEnd = normalize(lastDayOfMonth(monthCursor));
+      const hasWDInMonth = sortedWDs.some(w => {
+        const d = new Date(w.date);
+        return d.getFullYear() === monthCursor.getFullYear() && d.getMonth() === monthCursor.getMonth();
+      });
+
+      if (!checkpoints.some(d => d.getTime() === monthEnd.getTime()) && !hasWDInMonth) {
+        checkpoints.push(monthEnd);
+      }
+
+      monthCursor.setMonth(monthCursor.getMonth() + 1);
     }
-    amount = Math.max(0, amount - sorted[idx].amount);
-
-    labels.push(`${formatDateISO(wdDate)} (WD $${fmtMoney(sorted[idx].amount)})`);
-    balances.push(amount.toFixed(2));
-    withdrawnAmounts.push(sorted[idx].amount);
-
-    cur = new Date(wdDate);
-    cur.setDate(cur.getDate() + 1);
-    idx++;
   }
 
-  // ---- Extra last bar ----
-  let endDateInput = document.getElementById("endDate").value;
-  let finalDate;
-  if (endDateInput) {
-    finalDate = new Date(endDateInput);
-  } else {
-    finalDate = new Date(start);
-    finalDate.setDate(finalDate.getDate() + 30);
-  }
+  // Add final date as checkpoint
+  checkpoints.push(normalize(finalDate));
+  checkpoints = checkpoints.sort((a, b) => a - b);
 
-  // Compound balance from last withdrawal date up to final date
-  const extraDiff = Math.ceil((finalDate - cur) / msPerDay);
-  for (let d = 0; d < extraDiff; d++) {
-    amount = compoundOneDay(amount);
-  }
+  // --- Calculate balances and withdrawn ---
+  let curAmount = startAmount;
+  let curDate = normalize(startDate);
+  const labels = [], remainingData = [], withdrawnData = [], remainingColors = [];
 
-  labels.push(`${formatDateISO(finalDate)} (Final)`);
-  balances.push(amount.toFixed(2));
-  withdrawnAmounts.push(0); // no withdrawal
-  const colors = sorted.map(() => "#0d6efd").concat(["#87CEFA"]); // last one lightblue
+  for (let chk of checkpoints) {
+    const daysDiff = Math.ceil((chk - curDate) / msPerDay);
+    for (let i = 0; i < daysDiff; i++) curAmount = compoundOneDay(curAmount);
+
+    // Withdrawal if any
+    const wd = sortedWDs.find(w => normalize(new Date(w.date)).getTime() === chk.getTime());
+    let wdAmount = 0;
+    if (wd) {
+      wdAmount = wd.amount;
+      curAmount = Math.max(0, curAmount - wdAmount);
+    }
+
+    // Skip month-end checkpoint if it’s zero and a withdrawal exists in same month
+    const isMonthEnd = chk.getDate() === lastDayOfMonth(chk).getDate();
+    const hasWDInMonth = sortedWDs.some(w => {
+      const d = new Date(w.date);
+      return d.getFullYear() === chk.getFullYear() && d.getMonth() === chk.getMonth();
+    });
+    if (isMonthEnd && wdAmount === 0 && hasWDInMonth) continue;
+
+    labels.push(`${formatDateISO(chk)}${wdAmount > 0 ? ` (WD $${fmtMoney(wdAmount)})` : ""}`);
+    withdrawnData.push(wdAmount);
+    remainingData.push(curAmount.toFixed(2));
+    remainingColors.push(!wd && chk.getTime() === normalize(finalDate).getTime() ? "#87CEFA" : "#0d6efd");
+
+    curDate = new Date(chk.getTime() + msPerDay);
+  }
 
   if (balanceChart) balanceChart.destroy();
-
   const ctx = document.getElementById("balanceChart").getContext("2d");
   balanceChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
       datasets: [
-        {
-          label: "Remaining Balance",
-          data: balances,
-          backgroundColor: colors, // all blue, last one light blue
-          stack: 'stack1'
-        },
-        {
-          label: "Withdrawn",
-          data: withdrawnAmounts,
-          backgroundColor: "#dc3545", // red
-          stack: 'stack1'
-        }
+        { label: "Remaining Balance", data: remainingData, backgroundColor: remainingColors, stack: 'stack1' },
+        { label: "Withdrawn", data: withdrawnData, backgroundColor: "#dc3545", stack: 'stack1' }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: {
-          stacked: true,
-          ticks: { font: { size: 10 } },
-          barThickness: 16 // about 1rem
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          title: { display: true, text: "Amount ($)" }
-        }
+        x: { stacked: true, ticks: { font: { size: 10 } }, barThickness: 16 },
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: "Amount ($)" } }
       },
       plugins: {
         legend: { position: 'bottom' },
@@ -244,6 +243,8 @@ function updateBalanceChart() {
     }
   });
 }
+
+
 
 
 // ---- init ----
