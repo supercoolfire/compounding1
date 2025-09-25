@@ -151,6 +151,7 @@ function updateBalanceChart() {
   const sorted = [...withdrawals].sort((a, b) => new Date(a.date) - new Date(b.date));
   const labels = [];
   const balances = [];
+  const withdrawnAmounts = [];
 
   let cur = new Date(start);
   let idx = 0;
@@ -162,12 +163,36 @@ function updateBalanceChart() {
       amount = compoundOneDay(amount);
     }
     amount = Math.max(0, amount - sorted[idx].amount);
+
     labels.push(`${formatDateISO(wdDate)} (WD $${fmtMoney(sorted[idx].amount)})`);
     balances.push(amount.toFixed(2));
+    withdrawnAmounts.push(sorted[idx].amount);
+
     cur = new Date(wdDate);
     cur.setDate(cur.getDate() + 1);
     idx++;
   }
+
+  // ---- Extra last bar ----
+  let endDateInput = document.getElementById("endDate").value;
+  let finalDate;
+  if (endDateInput) {
+    finalDate = new Date(endDateInput);
+  } else {
+    finalDate = new Date(start);
+    finalDate.setDate(finalDate.getDate() + 30);
+  }
+
+  // Compound balance from last withdrawal date up to final date
+  const extraDiff = Math.ceil((finalDate - cur) / msPerDay);
+  for (let d = 0; d < extraDiff; d++) {
+    amount = compoundOneDay(amount);
+  }
+
+  labels.push(`${formatDateISO(finalDate)} (Final)`);
+  balances.push(amount.toFixed(2));
+  withdrawnAmounts.push(0); // no withdrawal
+  const colors = sorted.map(() => "#0d6efd").concat(["#87CEFA"]); // last one lightblue
 
   if (balanceChart) balanceChart.destroy();
 
@@ -180,12 +205,12 @@ function updateBalanceChart() {
         {
           label: "Remaining Balance",
           data: balances,
-          backgroundColor: "#0d6efd", // blue
+          backgroundColor: colors, // all blue, last one light blue
           stack: 'stack1'
         },
         {
           label: "Withdrawn",
-          data: sorted.map(w => w.amount),
+          data: withdrawnAmounts,
           backgroundColor: "#dc3545", // red
           stack: 'stack1'
         }
@@ -197,10 +222,8 @@ function updateBalanceChart() {
       scales: {
         x: {
           stacked: true,
-          ticks: {
-            font: { size: 10 }
-          },
-          barThickness: 16,  // about 1rem
+          ticks: { font: { size: 10 } },
+          barThickness: 16 // about 1rem
         },
         y: {
           stacked: true,
@@ -209,9 +232,7 @@ function updateBalanceChart() {
         }
       },
       plugins: {
-        legend: {
-          position: 'bottom'
-        },
+        legend: { position: 'bottom' },
         tooltip: {
           callbacks: {
             label: function(ctx) {
@@ -222,8 +243,8 @@ function updateBalanceChart() {
       }
     }
   });
-  
 }
+
 
 // ---- init ----
 window.onload=()=>{
