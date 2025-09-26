@@ -25,6 +25,11 @@ function compoundOneDay(a) {
   return a;
 }
 
+function takehome(amount) {
+  // Always return rounded 2 decimals
+  return parseFloat((amount * (1 - WITHDRAWAL_FEE_RATE)).toFixed(2));
+}
+
 // ---- Withdrawal UI helpers ----
 function addWithdrawal() {
   const d = document.getElementById("withdrawDate").value;
@@ -68,10 +73,10 @@ async function renderWithdrawals() {
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map(w => {
       const grossUsd = Number(w.amount) || 0;
-      const takeHomeUsd = parseFloat((grossUsd * (1 - WITHDRAWAL_FEE_RATE)).toFixed(2));
+      const takeHomeUsd = takehome(grossUsd);
 
       const grossPhp = usdToPhp ? fmtMoney(grossUsd * usdToPhp) : "—";
-      const takeHomePhp = usdToPhp ? fmtMoney(takeHomeUsd * usdToPhp) : "—";
+      const takeHomePhp = usdToPhp ? fmtMoney(takehome(grossUsd * usdToPhp)) : "—";
 
       return `
         <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -157,9 +162,16 @@ function calculateInvestment(){
   const final=applyWithdrawalsForDays(amount,start,days);
   const end=new Date(start); end.setDate(start.getDate()+days);
 
-  let peso = usdToPhp ? " ₱" + fmtMoney(final * usdToPhp) : "";
-  document.getElementById('finalResult').textContent=
-    `Final amount after ${days} days: $${fmtMoney(final)}${peso}`;
+  const pesoAmount = usdToPhp ? (final * usdToPhp) : null;               // numeric or null
+  const pesoText = pesoAmount !== null ? ` ₱${fmtMoney(pesoAmount)}` : ""; // formatted string or empty
+
+  const takeHomeUsd = takehome(final);                                 // numeric
+  const takeHomePesoAmount = (pesoAmount !== null) ? takehome(pesoAmount) : null;
+  const takeHomePesoText = takeHomePesoAmount !== null ? ` ₱${fmtMoney(takeHomePesoAmount)}` : "";
+
+  document.getElementById('finalResult').textContent =
+    `Final amount after ${days} days: $${fmtMoney(final)}${pesoText} ` +
+    `(-${Math.round(WITHDRAWAL_FEE_RATE * 100)}% Take home: $${fmtMoney(takeHomeUsd)}${takeHomePesoText})`;
 
   document.getElementById('finalResult').classList.remove('d-none');
   document.getElementById('endDate').value=formatDateISO(end);
@@ -177,8 +189,10 @@ function calculateDaysToTarget(){
   let peso = usdToPhp ? " ₱" + fmtMoney(target * usdToPhp) : "";
   document.getElementById('days').value=r.days;
   document.getElementById('endDate').value=formatDateISO(r.end);
-  document.getElementById('targetResult').textContent=
-    `It will take about ${r.days} days to reach $${fmtMoney(target)}${peso} (until ${r.end.toDateString()}).`;
+  document.getElementById('targetResult').textContent =
+  `It will take about ${r.days} days to reach $${fmtMoney(target)} ₱${fmtMoney(target * usdToPhp)} ` +
+  `(-${Math.round(WITHDRAWAL_FEE_RATE*100)}% Take home: $${fmtMoney(takehome(target))} ₱${fmtMoney(takehome(target * usdToPhp))}) ` +
+  `(until ${r.end.toDateString()}).`;
 
   document.getElementById('targetResult').classList.remove('d-none');
   updateBalanceChart();
@@ -319,7 +333,21 @@ async function fetchUsdToPhp() {
   }
 }
 
+// ---- Withdrawal helpers ----
+function calculateTakeHome(amountUsd) {
+  const grossUsd = Number(amountUsd) || 0;
+  const takeHomeUsd = parseFloat((grossUsd * (1 - WITHDRAWAL_FEE_RATE)).toFixed(2));
 
+  const grossPhp = usdToPhp ? fmtMoney(grossUsd * usdToPhp) : "—";
+  const takeHomePhp = usdToPhp ? fmtMoney(takeHomeUsd * usdToPhp) : "—";
+
+  return {
+    grossUsd,
+    takeHomeUsd,
+    grossPhp,
+    takeHomePhp
+  };
+}
 // ---- init ----
 window.onload= async () =>{
   const t=new Date(), ts=formatDateISO(t);
