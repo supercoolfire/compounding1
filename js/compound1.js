@@ -6,6 +6,9 @@ const msPerDay = 1000 * 60 * 60 * 24;
 let withdrawals = []; // {id, date:'YYYY-MM-DD', amount:number}
 
 let usdToPhp = 0;
+const WITHDRAWAL_FEE_RATE = 0.20; // 20% fee on withdrawal amount
+
+// ---- Core calc constants & helpers ----
 
 function formatDateISO(d) {
   return new Date(d).toISOString().slice(0, 10);
@@ -31,23 +34,71 @@ function addWithdrawal() {
   withdrawals.sort((x, y) => new Date(x.date) - new Date(y.date));
   renderWithdrawals();
 }
-function renderWithdrawals() {
+
+async function renderWithdrawals() {
   const list = document.getElementById("withdrawalsList");
   if (!list) return;
+
+  // If no withdrawals, render empty message and hide chart
   if (withdrawals.length === 0) {
     list.innerHTML = '<li class="list-group-item text-muted">No withdrawals</li>';
-  } else {
-    list.innerHTML = withdrawals.map(w=>`
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div><strong>$${fmtMoney(w.amount)}</strong> <small class="text-muted">${w.date}</small></div>
-        <div>
-          <button class="btn btn-sm btn-warning me-2" onclick="editWithdrawal(${w.id})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteWithdrawal(${w.id})">Delete</button>
-        </div>
-      </li>`).join('');
+    updateBalanceChart(); // keep chart state consistent
+    return;
   }
-  updateBalanceChart(); // update chart whenever list changes
+
+  // Ensure we have an exchange rate. Try to fetch if we don't.
+  if (!usdToPhp) {
+    try {
+      const resp = await fetch("https://open.er-api.com/v6/latest/USD");
+      const data = await resp.json();
+      if (data && data.rates && data.rates.PHP) {
+        usdToPhp = data.rates.PHP;
+      } else {
+        usdToPhp = null;
+      }
+    } catch (err) {
+      // network or API error -> keep usdToPhp null and continue (we'll show '—' for PHP)
+      console.warn("Failed to fetch USD→PHP rate:", err);
+      usdToPhp = null;
+    }
+  }
+
+  // Build the list HTML
+  const html = withdrawals
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map(w => {
+      const grossUsd = Number(w.amount) || 0;
+      const takeHomeUsd = parseFloat((grossUsd * (1 - WITHDRAWAL_FEE_RATE)).toFixed(2));
+
+      const grossPhp = usdToPhp ? fmtMoney(grossUsd * usdToPhp) : "—";
+      const takeHomePhp = usdToPhp ? fmtMoney(takeHomeUsd * usdToPhp) : "—";
+
+      return `
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>$${fmtMoney(grossUsd)}</strong>
+            ${ usdToPhp ? `₱${grossPhp}` : "" }
+            <span class="text-muted"> (-${Math.round(WITHDRAWAL_FEE_RATE*100)}% Take home: </span>
+            <strong>$${fmtMoney(takeHomeUsd)}</strong>
+            ${ usdToPhp ? `<span class="text-muted"> ₱${takeHomePhp}</span>` : "" }
+            <span class="text-muted">)</span>
+            <spa><small class="text-muted">${w.date}</small></spa>
+          </div>
+          <div>
+            <button class="btn btn-sm btn-warning me-2" onclick="editWithdrawal(${w.id})">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteWithdrawal(${w.id})">Delete</button>
+          </div>
+        </li>
+      `;
+    })
+    .join("");
+
+  list.innerHTML = html;
+
+  // Update chart as before
+  updateBalanceChart();
 }
+
 function editWithdrawal(id){
   const i=withdrawals.findIndex(w=>w.id===id);
   if(i<0)return;
@@ -270,7 +321,7 @@ async function fetchUsdToPhp() {
 
 
 // ---- init ----
-window.onload= async () => {
+window.onload= async () =>{
   const t=new Date(), ts=formatDateISO(t);
   document.getElementById('startDate').value=ts;
   await fetchUsdToPhp();
