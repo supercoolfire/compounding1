@@ -5,6 +5,8 @@ const INCREASE_RATE = 0.01;
 const msPerDay = 1000 * 60 * 60 * 24;
 let withdrawals = []; // {id, date:'YYYY-MM-DD', amount:number}
 
+let usdToPhp = 0;
+
 function formatDateISO(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
@@ -100,9 +102,14 @@ function calculateInvestment(){
   const days=parseInt(document.getElementById('days').value);
   const start=new Date(document.getElementById('startDate').value);
   if(isNaN(amount)||isNaN(days)||isNaN(start))return alert('Enter valid inputs');
+
   const final=applyWithdrawalsForDays(amount,start,days);
   const end=new Date(start); end.setDate(start.getDate()+days);
-  document.getElementById('finalResult').textContent=`Final amount after ${days} days: $${fmtMoney(final)}`;
+
+  let peso = usdToPhp ? " ₱" + fmtMoney(final * usdToPhp) : "";
+  document.getElementById('finalResult').textContent=
+    `Final amount after ${days} days: $${fmtMoney(final)}${peso}`;
+
   document.getElementById('finalResult').classList.remove('d-none');
   document.getElementById('endDate').value=formatDateISO(end);
   updateBalanceChart();
@@ -113,10 +120,15 @@ function calculateDaysToTarget(){
   const target=parseFloat(document.getElementById('targetAmount').value);
   const start=new Date(document.getElementById('startDate').value);
   if(isNaN(amount)||isNaN(target)||isNaN(start))return alert('Enter valid inputs');
+
   const r=growToTarget(amount,start,target);
+
+  let peso = usdToPhp ? " ₱" + fmtMoney(target * usdToPhp) : "";
   document.getElementById('days').value=r.days;
   document.getElementById('endDate').value=formatDateISO(r.end);
-  document.getElementById('targetResult').textContent=`It will take about ${r.days} days to reach $${fmtMoney(target)} (until ${r.end.toDateString()}).`;
+  document.getElementById('targetResult').textContent=
+    `It will take about ${r.days} days to reach $${fmtMoney(target)}${peso} (until ${r.end.toDateString()}).`;
+
   document.getElementById('targetResult').classList.remove('d-none');
   updateBalanceChart();
 }
@@ -244,12 +256,23 @@ function updateBalanceChart() {
   });
 }
 
-
+// ---- Fetch USD to PHP rate ----
+async function fetchUsdToPhp() {
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    const data = await res.json();
+    usdToPhp = data.rates.PHP;
+  } catch (e) {
+    console.error("Failed to fetch exchange rate", e);
+    usdToPhp = 0;
+  }
+}
 
 
 // ---- init ----
-window.onload=()=>{
+window.onload= async () => {
   const t=new Date(), ts=formatDateISO(t);
   document.getElementById('startDate').value=ts;
+  await fetchUsdToPhp();
   renderWithdrawals();
 };
