@@ -73,7 +73,7 @@ new_amount = current_amount + rounded_increase
 
 ## 🖼️ Screenshot
 
-![App Screenshot](screenshot.png)
+![App Screenshot](images/screenshot.png)
 
 ---
 
